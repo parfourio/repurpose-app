@@ -175,6 +175,14 @@ def app_page():
 
 @app.route("/generate", methods=["POST"])
 def generate():
+    try:
+        return _generate_inner()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+def _generate_inner():
     if not session.get("user_email"):
         return jsonify({"error": "Not logged in"}), 401
 
