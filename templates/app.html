@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repurpose by Par4</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8f9ff; color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: white; border-bottom: 1px solid #e8eaf4;
+      padding: 0 40px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo { font-size: 1rem; font-weight: 800; color: #4f46e5; letter-spacing: -0.02em; }
+    .header-logo span { color: #1a1a2e; }
+    .header-right { display: flex; align-items: center; gap: 20px; }
+    .header-user { font-size: 0.82rem; color: #8a9ab0; }
+    .header-user strong { color: #4a5568; font-weight: 600; }
+    .btn-logout {
+      font-size: 0.75rem; font-weight: 600; color: #8a9ab0;
+      text-decoration: none; transition: color 0.2s;
+    }
+    .btn-logout:hover { color: #4f46e5; }
+
+    /* ── LAYOUT ── */
+    .workspace {
+      display: grid; grid-template-columns: 380px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ── LEFT PANEL (input) ── */
+    .input-panel {
+      background: white; border-right: 1px solid #e8eaf4;
+      padding: 32px 28px; display: flex; flex-direction: column; gap: 24px;
+      position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto;
+    }
+    .panel-title {
+      font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #6366f1;
+    }
+    .field-label {
+      font-size: 0.72rem; font-weight: 700; color: #4a5568;
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%; height: 200px; padding: 14px;
+      border: 1.5px solid #e8eaf0; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 0.88rem;
+      color: #1a1a2e; line-height: 1.65; resize: vertical;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fafbff;
+    }
+    textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    textarea::placeholder { color: #b0bcc8; }
+
+    select {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #e8eaf0; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 0.88rem; color: #1a1a2e;
+      background: #fafbff; outline: none;
+      cursor: pointer; transition: border-color 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236366f1' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
+    select:focus { border-color: #6366f1; }
+
+    #custom-desc-wrap { display: none; }
+    #custom-desc {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #e8eaf0; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #1a1a2e;
+      background: #fafbff; outline: none; resize: none; height: 80px;
+      transition: border-color 0.2s;
+    }
+    #custom-desc:focus { border-color: #6366f1; }
+
+    .char-count { font-size: 0.7rem; color: #b0bcc8; text-align: right; margin-top: 4px; }
+
+    .btn-generate {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white; border: none; border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-generate:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-generate .spinner {
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: none;
+    }
+    .btn-generate.loading .spinner { display: block; }
+    .btn-generate.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RIGHT PANEL (output) ── */
+    .output-panel {
+      padding: 32px; display: flex; flex-direction: column; gap: 0;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex: 1; text-align: center; padding: 80px 24px;
+      color: #b0bcc8;
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 700; color: #8a9ab0; margin-bottom: 8px; }
+    .empty-state p { font-size: 0.85rem; line-height: 1.6; max-width: 300px; }
+
+    /* Output grid */
+    .output-grid {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .output-grid.visible { display: grid; }
+
+    .output-card {
+      background: white; border-radius: 14px;
+      border: 1px solid #e8eaf4;
+      padding: 24px; display: flex; flex-direction: column;
+      transition: box-shadow 0.2s;
+    }
+    .output-card:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.08); }
+    .output-card.full-width { grid-column: span 2; }
+
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .card-platform {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #6366f1;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-platform .platform-icon { font-size: 0.9rem; }
+    .btn-copy {
+      font-size: 0.7rem; font-weight: 700; color: #8a9ab0;
+      background: #f4f5ff; border: none; border-radius: 6px;
+      padding: 5px 12px; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.04em;
+    }
+    .btn-copy:hover { background: #eef0ff; color: #4f46e5; }
+    .btn-copy.copied { background: #ecfdf5; color: #059669; }
+
+    .card-content {
+      font-size: 0.84rem; color: #4a5568; line-height: 1.7;
+      white-space: pre-wrap; word-break: break-word;
+      flex: 1;
+    }
+
+    /* ── LOADING STATE ── */
+    .generating-msg {
+      display: none; text-align: center; padding: 80px 24px;
+      color: #8a9ab0;
+    }
+    .generating-msg.visible { display: block; }
+    .generating-dots {
+      font-size: 2rem; margin-bottom: 16px; letter-spacing: 0.2em;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .generating-msg h3 { font-size: 1rem; font-weight: 700; color: #6a7a8a; margin-bottom: 6px; }
+    .generating-msg p { font-size: 0.82rem; }
+
+    /* ── ERROR STATE ── */
+    .error-banner {
+      display: none; background: #fef2f2; border: 1px solid #fecaca;
+      color: #dc2626; font-size: 0.84rem; font-weight: 500;
+      padding: 14px 18px; border-radius: 10px; margin-bottom: 20px;
+    }
+    .error-banner.visible { display: block; }
+
+    @media (max-width: 1024px) {
+      .workspace { grid-template-columns: 1fr; }
+      .input-panel { position: static; height: auto; }
+      .output-grid { grid-template-columns: 1fr; }
+      .output-card.full-width { grid-column: span 1; }
+    }
+    @media (max-width: 640px) {
+      header { padding: 0 20px; }
+      .input-panel, .output-panel { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">Repurpose <span>by Par4</span></div>
+  <div class="header-right">
+    <span class="header-user">Hi, <strong>{{ user_name }}</strong></span>
+    <a href="/logout" class="btn-logout">Sign out</a>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT: INPUT -->
+  <div class="input-panel">
+    <div class="panel-title">New Repurpose</div>
+
+    <div>
+      <div class="field-label">Your content</div>
+      <textarea id="source-content"
+        placeholder="Paste anything here — a caption, a paragraph, bullet points, a product description. The more specific, the better the output."></textarea>
+      <div class="char-count"><span id="char-num">0</span> characters</div>
+    </div>
+
+    <div>
+      <div class="field-label">Business type</div>
+      <select id="business-type" onchange="handleBusinessTypeChange()">
+        {% for key, ctx in business_types.items() %}
+        <option value="{{ key }}">{{ ctx.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="custom-desc-wrap">
+      <div class="field-label">Describe your business</div>
+      <textarea id="custom-desc" placeholder="e.g. A family-owned florist in San Rafael, CA specializing in wedding arrangements and same-day delivery."></textarea>
+    </div>
+
+    <button class="btn-generate" id="generate-btn" onclick="generate()">
+      <div class="spinner"></div>
+      <span class="btn-text">✦ Generate 7 Posts</span>
+    </button>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="output-panel">
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">✦</div>
+      <h3>Ready to repurpose</h3>
+      <p>Paste your content on the left, pick your business type, and hit Generate. Seven platform-ready posts in seconds.</p>
+    </div>
+
+    <!-- Generating state -->
+    <div class="generating-msg" id="generating-msg">
+      <div class="generating-dots">···</div>
+      <h3>Writing your posts</h3>
+      <p>Claude is adapting your content for all 7 platforms...</p>
+    </div>
+
+    <!-- Output cards -->
+    <div class="output-grid" id="output-grid">
+
+      <div class="output-card full-width" id="card-instagram">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">📸</span> Instagram</div>
+          <button class="btn-copy" onclick="copyCard('instagram')">Copy</button>
+        </div>
+        <div class="card-content" id="content-instagram"></div>
+      </div>
+
+      <div class="output-card" id="card-linkedin">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">💼</span> LinkedIn</div>
+          <button class="btn-copy" onclick="copyCard('linkedin')">Copy</button>
+        </div>
+        <div class="card-content" id="content-linkedin"></div>
+      </div>
+
+      <div class="output-card" id="card-facebook">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">👥</span> Facebook</div>
+          <button class="btn-copy" onclick="copyCard('facebook')">Copy</button>
+        </div>
+        <div class="card-content" id="content-facebook"></div>
+      </div>
+
+      <div class="output-card full-width" id="card-twitter">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">𝕏</span> Twitter / X Thread</div>
+          <button class="btn-copy" onclick="copyCard('twitter')">Copy</button>
+        </div>
+        <div class="card-content" id="content-twitter"></div>
+      </div>
+
+      <div class="output-card" id="card-google_business">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">📍</span> Google Business</div>
+          <button class="btn-copy" onclick="copyCard('google_business')">Copy</button>
+        </div>
+        <div class="card-content" id="content-google_business"></div>
+      </div>
+
+      <div class="output-card" id="card-email">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">✉️</span> Email Newsletter</div>
+          <button class="btn-copy" onclick="copyCard('email')">Copy</button>
+        </div>
+        <div class="card-content" id="content-email"></div>
+      </div>
+
+      <div class="output-card full-width" id="card-sms">
+        <div class="card-header">
+          <div class="card-platform"><span class="platform-icon">💬</span> SMS / Text</div>
+          <button class="btn-copy" onclick="copyCard('sms')">Copy</button>
+        </div>
+        <div class="card-content" id="content-sms"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Char counter
+  const textarea = document.getElementById('source-content');
+  const charNum  = document.getElementById('char-num');
+  textarea.addEventListener('input', () => {
+    charNum.textContent = textarea.value.length;
+  });
+
+  // Show custom desc field if "Other" selected
+  function handleBusinessTypeChange() {
+    const val  = document.getElementById('business-type').value;
+    const wrap = document.getElementById('custom-desc-wrap');
+    wrap.style.display = val === 'custom' ? 'block' : 'none';
+  }
+
+  // Generate
+  async function generate() {
+    const content      = document.getElementById('source-content').value.trim();
+    const businessType = document.getElementById('business-type').value;
+    const customDesc   = document.getElementById('custom-desc').value.trim();
+    const btn          = document.getElementById('generate-btn');
+    const errorBanner  = document.getElementById('error-banner');
+    const emptyState   = document.getElementById('empty-state');
+    const genMsg       = document.getElementById('generating-msg');
+    const outputGrid   = document.getElementById('output-grid');
+
+    if (!content) {
+      errorBanner.textContent = 'Please paste some content first.';
+      errorBanner.classList.add('visible');
+      return;
+    }
+
+    // Loading state
+    errorBanner.classList.remove('visible');
+    emptyState.style.display  = 'none';
+    outputGrid.classList.remove('visible');
+    genMsg.classList.add('visible');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/generate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ content, business_type: businessType, custom_desc: customDesc })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Generation failed');
+      }
+
+      // Populate cards
+      const sections = data.sections;
+      for (const [key, text] of Object.entries(sections)) {
+        const el = document.getElementById(`content-${key}`);
+        if (el) el.textContent = text;
+      }
+
+      genMsg.classList.remove('visible');
+      outputGrid.classList.add('visible');
+
+      // Scroll to top of output
+      outputGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      genMsg.classList.remove('visible');
+      emptyState.style.display = 'flex';
+      errorBanner.textContent = `Something went wrong: ${err.message}. Please try again.`;
+      errorBanner.classList.add('visible');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  // Copy to clipboard
+  async function copyCard(platform) {
+    const content = document.getElementById(`content-${platform}`).textContent;
+    const btn     = document.querySelector(`#card-${platform} .btn-copy`);
+    try {
+      await navigator.clipboard.writeText(content);
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    } catch {
+      // fallback
+      const range = document.createRange();
+      range.selectNode(document.getElementById(`content-${platform}`));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+    }
+  }
+
+  // Allow Cmd+Enter to generate
+  textarea.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') generate();
+  });
+</script>
+
+</body>
+</html>
