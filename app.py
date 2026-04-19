@@ -2,13 +2,14 @@
 Repurpose by Par4
 =================
 Flask backend — handles signup, sessions, and Claude API calls.
+Uses Supabase (Postgres) for persistent user storage.
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import anthropic
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import os
-from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,42 +18,57 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "change-this-in-production")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-DB_PATH = "users.db"
+DATABASE_URL      = os.environ.get("DATABASE_URL")
 
 # ─── DATABASE ─────────────────────────────────────────────────────────────────
 
+def get_conn():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            id        SERIAL PRIMARY KEY,
             name      TEXT NOT NULL,
             email     TEXT UNIQUE NOT NULL,
-            joined_at TEXT NOT NULL
+            joined_at TIMESTAMPTZ DEFAULT now()
         )
     """)
     conn.commit()
+    cur.close()
     conn.close()
 
 def get_user(email):
-    conn = sqlite3.connect(DB_PATH)
-    row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    conn = get_conn()
+    cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return row
 
 def create_user(name, email):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_conn()
+    cur  = conn.cursor()
     try:
-        conn.execute(
-            "INSERT INTO users (name, email, joined_at) VALUES (?, ?, ?)",
-            (name, email, datetime.now().isoformat())
+        cur.execute(
+            "INSERT INTO users (name, email) VALUES (%s, %s)",
+            (name, email)
         )
         conn.commit()
+        cur.close()
         conn.close()
         return True
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        cur.close()
         conn.close()
         return False  # email already exists
+
+# Initialize DB at startup (runs under both gunicorn and direct python)
+init_db()
 
 # ─── BUSINESS CONTEXTS ────────────────────────────────────────────────────────
 
@@ -142,7 +158,7 @@ def signup():
 
     if user:
         session["user_email"] = email
-        session["user_name"]  = user[1]  # name column
+        session["user_name"]  = user["name"]
         return redirect(url_for("app_page"))
 
     return render_template("index.html", error="Something went wrong. Please try again.")
@@ -256,6 +272,5 @@ def logout():
 # ─── START ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
