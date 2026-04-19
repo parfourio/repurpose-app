@@ -373,9 +373,14 @@
         body:    JSON.stringify({ content, business_type: businessType, custom_desc: customDesc })
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Server error (${res.status}). Please try again.`);
+      }
 
-      if (!data.success) {
+      if (!res.ok || !data.success) {
         throw new Error(data.error || 'Generation failed');
       }
 

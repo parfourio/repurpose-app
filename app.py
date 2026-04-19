@@ -229,11 +229,14 @@ Short headline. 100-200 words. Scannable short paragraphs. Personal tone. One CT
 Under 160 characters total. Direct and punchy. Include CTA.
 """
 
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=2500,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    try:
+        message = client.messages.create(
+            model="claude-opus-4-5",
+            max_tokens=2500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+    except Exception as e:
+        return jsonify({"error": f"Claude API error: {str(e)}"}), 500
 
     raw = message.content[0].text
 
